@@ -64,5 +64,6 @@ yarn-error.log*
 next-env.d.ts
 
 # Custom additions
-athletes/          # Exclude athletes directory
-backend/proxies.txt        # Exclude your proxies file
+athletes/
+proxies.txt
+start.bat
