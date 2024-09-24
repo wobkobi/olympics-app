@@ -65,5 +65,4 @@ next-env.d.ts
 
 # Custom additions
 athletes/
-proxies.txt
 start.bat
