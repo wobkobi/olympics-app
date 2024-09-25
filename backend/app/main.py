@@ -16,7 +16,7 @@ from app.url_scraping.athletes import fetch_and_save_athletes
 from app.data_scraping.athletes_scraper import scrape_athlete_data
 from app.data_scraping.host_cities_scraper import scrape_host_cities
 from app.data_scraping.noc_countries_scraper import scrape_noc_countries
-
+from app.data_scraping.roles_scraper import extract_roles
 import logging
 
 app = FastAPI()
@@ -46,6 +46,7 @@ ATHLETES_URLS_JSON = os.path.join(RAW_DATA_DIR, "athletes_urls.json")
 ATHLETES_CSV = os.path.join(DATA_DIR, "athletes.csv")
 HOST_CITIES_CSV = os.path.join(DATA_DIR, "host_cities.csv")
 NOC_COUNTRIES_CSV = os.path.join(DATA_DIR, "noc_countries.csv")
+ATHLETES_ROLES_CSV = os.path.join(DATA_DIR, "athletes_roles.csv")
 
 # Global variables with thread safety
 status_message_lock = threading.Lock()
@@ -106,7 +107,13 @@ def check_and_run_data_pipeline():
             scrape_noc_countries()
         else:
             logger.info(f"Skipping NOC countries scraping. File exists: {NOC_COUNTRIES_CSV}")
-
+            
+        if not os.path.exists(ATHLETES_ROLES_CSV):
+            update_status("Extracting athlete roles...")
+            extract_roles()
+        else:
+            logger.info(f"Skipping athlete roles extraction. File exists: {ATHLETES_ROLES_CSV}")
+        
         update_status("Data scraping completed.")
     except Exception as e:
         logger.error(f"Error occurred: {e}", exc_info=True)
