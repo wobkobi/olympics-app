@@ -1,5 +1,4 @@
-# main.py
-
+import csv
 import os
 import threading
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Path, Query
@@ -10,6 +9,8 @@ import numpy as np
 import json
 from typing import Iterator, List, Optional
 from fastapi.responses import JSONResponse, StreamingResponse
+import logging
+from functools import lru_cache
 from app.url_scraping.countries import fetch_and_save_countries
 from app.url_scraping.events import fetch_and_save_events
 from app.url_scraping.athletes import fetch_and_save_athletes
@@ -17,7 +18,6 @@ from app.data_scraping.athletes_scraper import scrape_athlete_data
 from app.data_scraping.host_cities_scraper import scrape_host_cities
 from app.data_scraping.noc_countries_scraper import scrape_noc_countries
 from app.data_scraping.roles_scraper import extract_roles
-import logging
 
 app = FastAPI()
 
@@ -28,10 +28,10 @@ logger = logging.getLogger(__name__)
 # CORS setup - Adjusted for security
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Consider specifying allowed origins in production
+    allow_origins=["*"],  # or specify domains like ["http://localhost:3000"]
     allow_credentials=True,
-    allow_methods=["GET", "POST"],  # Restrict methods if possible
-    allow_headers=["*"],
+    allow_methods=["*"],  # or specify methods like ["GET", "POST"]
+    allow_headers=["*"],  # or specify headers if needed
 )
 
 # Directory setup
@@ -144,6 +144,19 @@ async def run_data_pipeline(background_tasks: BackgroundTasks):
 def get_status():
     return {"status": get_status_message()}
 
+# Caching CSV Data
+
+@lru_cache(maxsize=10)
+def load_csv_as_dataframe(file_path: str) -> pd.DataFrame:
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="CSV file not found")
+    
+    df = pd.read_csv(file_path)
+    df.replace([np.inf, -np.inf], None, inplace=True)
+    df = df.where(pd.notnull(df), None)
+    
+    return df
+
 @app.get("/athletes")
 def get_athletes(
     skip: int = Query(0, ge=0, description="Number of records to skip."),
@@ -155,64 +168,30 @@ def get_athletes(
 ):
     """
     Retrieve athletes data with pagination and optional filtering.
-
-    - **skip**: Number of records to skip.
-    - **limit**: Number of records to retrieve (max 1000).
-    - **game**: Filter by Olympic game (e.g., '2020 Summer Olympics').
-    - **sport**: Filter by sport.
-    - **role**: Filter by role.
-    - **name**: Filter by athlete name (partial match).
     """
-    if not os.path.exists(ATHLETES_CSV):
-        raise HTTPException(status_code=404, detail="CSV file not found")
-
     try:
-        # Define a generator to stream records
-        def record_generator():
-            df_iter = pd.read_csv(ATHLETES_CSV, chunksize=1000)
-            for df_chunk in df_iter:
-                # Clean the data
-                df_chunk = df_chunk.where(pd.notnull(df_chunk), None)
-                df_chunk.replace([np.inf, -np.inf], None, inplace=True)
-                
-                # Apply filters
-                if game:
-                    df_chunk = df_chunk[df_chunk['game'].str.lower() == game.lower()]
-                if sport:
-                    df_chunk = df_chunk[df_chunk['sport'].str.lower().str.contains(sport.lower())]
-                if role:
-                    df_chunk = df_chunk[df_chunk['roles'].str.lower().str.contains(role.lower())]
-                if name:
-                    df_chunk = df_chunk[df_chunk['name'].str.lower().str.contains(name.lower())]
-                
-                records = df_chunk.to_dict(orient='records')
-                for record in records:
-                    yield record
+        df = load_csv_as_dataframe(ATHLETES_CSV)
 
-        # Create a generator with filters applied
-        filtered_records = record_generator()
+        # Apply filters
+        if game:
+            df = df[df['game'].str.lower() == game.lower()]
+        if sport:
+            df = df[df['sport'].str.lower().str.contains(sport.lower())]
+        if role:
+            df = df[df['roles'].str.lower().str.contains(role.lower())]
+        if name:
+            df = df[df['name'].str.lower().str.contains(name.lower())]
 
-        # Skip the first 'skip' records
-        for _ in range(skip):
-            try:
-                next(filtered_records)
-            except StopIteration:
-                break  # Less records than skip
+        total_records = len(df)
+        
+        # Apply pagination
+        df = df.iloc[skip: skip + limit]
 
-        # Collect the next 'limit' records
-        athletes_list = []
-        for _ in range(limit):
-            try:
-                record = next(filtered_records)
-                athletes_list.append(record)
-            except StopIteration:
-                break  # No more records
-
-        return JSONResponse(content={"athletes": athletes_list})
+        return JSONResponse(content={"athletes": df.to_dict(orient="records"), "total_records": total_records})
 
     except Exception as e:
-        logger.error(f"Error streaming filtered CSV file {ATHLETES_CSV}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Error streaming CSV file: {e}")
+        logger.error(f"Error retrieving athletes data: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error retrieving athletes data: {e}")
 
 @app.get("/athletes/count")
 def get_athletes_count(
@@ -223,72 +202,41 @@ def get_athletes_count(
 ):
     """
     Retrieve the total count of athletes based on applied filters.
-
-    - **game**: Filter by Olympic game (e.g., '2020 Summer Olympics').
-    - **sport**: Filter by sport.
-    - **role**: Filter by role.
-    - **name**: Filter by athlete name (partial match).
     """
-    if not os.path.exists(ATHLETES_CSV):
-        raise HTTPException(status_code=404, detail="CSV file not found")
     try:
-        count = 0
-        df_iter = pd.read_csv(ATHLETES_CSV, chunksize=1000)
-        for df_chunk in df_iter:
-            # Clean the data
-            df_chunk = df_chunk.where(pd.notnull(df_chunk), None)
-            df_chunk.replace([np.inf, -np.inf], None, inplace=True)
-            
-            # Apply filters
-            if game:
-                df_chunk = df_chunk[df_chunk['game'].str.lower() == game.lower()]
-            if sport:
-                df_chunk = df_chunk[df_chunk['sport'].str.lower().str.contains(sport.lower())]
-            if role:
-                df_chunk = df_chunk[df_chunk['roles'].str.lower().str.contains(role.lower())]
-            if name:
-                df_chunk = df_chunk[df_chunk['name'].str.lower().str.contains(name.lower())]
-            
-            count += len(df_chunk)
+        df = load_csv_as_dataframe(ATHLETES_CSV)
+
+        # Apply filters
+        if game:
+            df = df[df['game'].str.lower() == game.lower()]
+        if sport:
+            df = df[df['sport'].str.lower().str.contains(sport.lower())]
+        if role:
+            df = df[df['roles'].str.lower().str.contains(role.lower())]
+        if name:
+            df = df[df['name'].str.lower().str.contains(name.lower())]
         
-        return {"total_records": count}
+        return {"total_records": len(df)}
     except Exception as e:
-        logger.error(f"Error counting filtered athletes: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to count athletes")
+        logger.error(f"Error counting athletes data: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error counting athletes data: {e}")
 
 @app.get("/athletes/{athlete_id}")
 def get_athlete_details(athlete_id: int = Path(..., description="The ID of the athlete to retrieve")):
     """
     Retrieve a single athlete by their ID with all associated events.
-
-    - **athlete_id**: The unique ID of the athlete.
     """
-    if not os.path.exists(ATHLETES_CSV):
-        raise HTTPException(status_code=404, detail="CSV file not found")
-
     try:
-        events = []
-        athlete_record = None
-        df_iter = pd.read_csv(ATHLETES_CSV, chunksize=1000)
-        for df_chunk in df_iter:
-            # Clean the data
-            df_chunk = df_chunk.where(pd.notnull(df_chunk), None)
-            df_chunk.replace([np.inf, -np.inf], None, inplace=True)
-            
-            # Filter for the athlete
-            filtered = df_chunk[df_chunk['id'] == athlete_id]
-            if not filtered.empty:
-                if not athlete_record:
-                    # Assuming all records have the same athlete details
-                    athlete_record = filtered.iloc[0].to_dict()
-                # Extract event details
-                event_details = filtered[['game', 'sport', 'event', 'team', 'position']].to_dict(orient='records')
-                events.extend(event_details)
-        
-        if not athlete_record:
+        df = load_csv_as_dataframe(ATHLETES_CSV)
+        athlete_df = df[df['id'] == athlete_id]
+
+        if athlete_df.empty:
             raise HTTPException(status_code=404, detail="Athlete not found or no events available")
+
+        # Extract event details
+        athlete_record = athlete_df.iloc[0].to_dict()
+        event_details = athlete_df[['game', 'sport', 'event', 'team', 'position']].to_dict(orient='records')
         
-        # Structure the response
         response = {
             "athlete": {
                 "id": athlete_record.get("id"),
@@ -302,7 +250,7 @@ def get_athlete_details(athlete_id: int = Path(..., description="The ID of the a
                 "roles": athlete_record.get("roles"),
                 "image_url": athlete_record.get("image_url"),
             },
-            "events": events
+            "events": event_details
         }
 
         return JSONResponse(content=response)
@@ -317,27 +265,11 @@ def get_host_cities():
     """
     Retrieve host cities data as a JSON array.
     """
-    if not os.path.exists(HOST_CITIES_CSV):
-        raise HTTPException(status_code=404, detail="CSV file not found")
-    
     def stream_host_cities_as_json_array(file_path: str) -> Iterator[str]:
         try:
-            yield "["  # Start of JSON array
-            first = True
-            with open(file_path, mode='r', encoding='utf-8') as csvfile:
-                reader = pd.read_csv(csvfile, chunksize=1000)
-                for df_chunk in reader:
-                    # Replace NaN with None and infinite values with None
-                    df_chunk = df_chunk.where(pd.notnull(df_chunk), None)
-                    df_chunk.replace([np.inf, -np.inf], None, inplace=True)
-                    records = df_chunk.to_dict(orient='records')
-                    for record in records:
-                        if not first:
-                            yield ","  # Separator between JSON objects
-                        else:
-                            first = False
-                        yield json.dumps(record)
-            yield "]"  # End of JSON array
+            df = load_csv_as_dataframe(file_path)
+            records = df.to_dict(orient='records')
+            yield json.dumps(records)
         except Exception as e:
             logger.error(f"Error streaming CSV file {file_path}: {e}", exc_info=True)
             raise HTTPException(status_code=500, detail=f"Error streaming CSV file: {e}")
@@ -352,27 +284,11 @@ def get_noc_countries():
     """
     Retrieve NOC countries data as a JSON array.
     """
-    if not os.path.exists(NOC_COUNTRIES_CSV):
-        raise HTTPException(status_code=404, detail="CSV file not found")
-    
     def stream_noc_countries_as_json_array(file_path: str) -> Iterator[str]:
         try:
-            yield "["  # Start of JSON array
-            first = True
-            with open(file_path, mode='r', encoding='utf-8') as csvfile:
-                reader = pd.read_csv(csvfile, chunksize=1000)
-                for df_chunk in reader:
-                    # Replace NaN with None and infinite values with None
-                    df_chunk = df_chunk.where(pd.notnull(df_chunk), None)
-                    df_chunk.replace([np.inf, -np.inf], None, inplace=True)
-                    records = df_chunk.to_dict(orient='records')
-                    for record in records:
-                        if not first:
-                            yield ","  # Separator between JSON objects
-                        else:
-                            first = False
-                        yield json.dumps(record)
-            yield "]"  # End of JSON array
+            df = load_csv_as_dataframe(file_path)
+            records = df.to_dict(orient='records')
+            yield json.dumps(records)
         except Exception as e:
             logger.error(f"Error streaming CSV file {file_path}: {e}", exc_info=True)
             raise HTTPException(status_code=500, detail=f"Error streaming CSV file: {e}")
@@ -381,3 +297,7 @@ def get_noc_countries():
         stream_noc_countries_as_json_array(NOC_COUNTRIES_CSV),
         media_type="application/json"
     )
+
+@app.get("/")
+def read_root():
+    return {"message": "Welcome to the Olympic Data API!"}
