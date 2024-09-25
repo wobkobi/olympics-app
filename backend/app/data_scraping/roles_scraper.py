@@ -5,9 +5,8 @@ import pandas as pd
 from app.utils import init_progress, increment_progress, progress_lock
 
 # Directory setup
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(BASE_DIR, "data")
-RAW_DATA_DIR = os.path.join(BASE_DIR, "raw_data")
+DATA_DIR = os.path.join(os.getcwd(), "data")
+RAW_DATA_DIR = os.path.join(os.getcwd(), "raw_data")
 ATHLETES_ROLES_CSV = os.path.join(DATA_DIR, "athletes_roles.csv")
 ATHLETES_CONTENT_JSON_GZ = os.path.join(RAW_DATA_DIR, "athletes_content.json.gz")
 

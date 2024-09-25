@@ -2,11 +2,9 @@ import os
 import requests
 import pandas as pd
 from bs4 import BeautifulSoup
-from app.utils import init_progress, increment_progress, progress_lock
 
 # Directory setup
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(BASE_DIR, "data")
+DATA_DIR = os.path.join(os.getcwd(), "data")
 HOST_CITIES_CSV = os.path.join(DATA_DIR, "host_cities.csv")
 
 # Initialize progress data
@@ -22,8 +20,6 @@ def get_host_cities(season_table_element, season):
     """Extract host cities from the given season table."""
     host_cities = []
     rows = season_table_element.find_all("tr")[1:]  # Skip header row
-    total_rows = len(rows)
-    init_progress(total_rows, progress_data)
 
     for row in rows:
         cells = row.find_all('td')
@@ -39,9 +35,6 @@ def get_host_cities(season_table_element, season):
             host_cities.append(game)
         else:
             print(f"Warning: Skipping a row due to insufficient data: {row}")
-
-        with progress_lock:
-            increment_progress(f"Scraping Host Cities ({season})", progress_data)
 
     return host_cities
 

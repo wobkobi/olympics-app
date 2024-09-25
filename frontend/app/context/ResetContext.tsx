@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, ReactNode } from "react";
+import React, { createContext, useContext, ReactNode } from "react";
 
 interface ResetContextType {
   resetFiltersAndTable: () => void;
@@ -7,10 +7,8 @@ interface ResetContextType {
 export const ResetContext = createContext<ResetContextType | undefined>(undefined);
 
 export const ResetProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [reset, setReset] = useState(false);
-
   const resetFiltersAndTable = () => {
-    setReset(true);
+    // You can implement the reset logic here if needed
   };
 
   return (

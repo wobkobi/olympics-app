@@ -116,7 +116,12 @@ async function fetchHostCities(): Promise<HostCity[]> {
 
 export default function HomePage() {
   const router = useRouter();
-  const { resetFiltersAndTable } = useContext(ResetContext);
+  const resetContext = useContext(ResetContext);
+  if (!resetContext) {
+    throw new Error("ResetContext is undefined. Make sure to wrap your component with ResetProvider.");
+  }
+
+  const { resetFiltersAndTable } = resetContext;
 
   // State variables
   const [athletes, setAthletes] = useState<Athlete[]>([]);
