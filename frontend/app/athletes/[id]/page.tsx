@@ -34,7 +34,9 @@ export default function AthleteDetailsPage() {
       if (!id) return;
 
       try {
-        const res = await fetch(`${process.env.API_URL}/athletes/${id}`);
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/athletes/${id}`
+        );
         if (!res.ok) {
           throw new Error("Failed to fetch athlete details");
         }
