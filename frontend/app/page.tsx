@@ -58,6 +58,19 @@ interface HostCity {
   host_city: string;
 }
 
+// Fetch API Root
+async function fetchApiRoot(): Promise<string> {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/`);
+  if (!res.ok) {
+    throw new Error("Failed to connect to the API root.");
+  }
+  const data = await res.json();
+  if (!data.message) {
+    throw new Error("Unexpected response from API root.");
+  }
+  return data.message;
+}
+
 // Fetch Athletes with Pagination and Filters
 async function fetchAthletes(
   skip: number,
@@ -126,6 +139,7 @@ export default function HomePage() {
   const { resetFiltersAndTable } = resetContext;
 
   // State variables
+  const [, setApiRootMessage] = useState<string | null>(null);
   const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [nocCountries, setNocCountries] = useState<NocCountry[]>([]);
   const [hostCities, setHostCities] = useState<HostCity[]>([]);
@@ -205,6 +219,10 @@ export default function HomePage() {
       try {
         setIsLoading(true);
         setError(null);
+
+        // Check API root connectivity
+        const apiMessage = await fetchApiRoot();
+        setApiRootMessage(apiMessage);
 
         // Fetch NOC Countries
         if (nocCountries.length === 0) {
