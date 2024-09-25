@@ -1,13 +1,11 @@
-import csv
 import os
 import threading
-from fastapi import FastAPI, HTTPException, BackgroundTasks, Path, Query
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Path, Query, CORSMiddleware
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import pandas as pd
 import numpy as np
 import json
-from typing import Iterator, List, Optional
+from typing import Iterator, Optional
 from fastapi.responses import JSONResponse, StreamingResponse
 import logging
 from functools import lru_cache
@@ -28,10 +26,10 @@ logger = logging.getLogger(__name__)
 # CORS setup - Adjusted for security
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "https://aws.harrisonraynes.com"],  # Allowed origins
+    allow_origins=["https://main.d23qwmigamgkm5.amplifyapp.com"],  # Explicitly allow your Amplify app domain
     allow_credentials=True,
-    allow_methods=["*"],  # Allow all methods (GET, POST, etc.)
-    allow_headers=["*"],  # Allow all headers
+    allow_methods=["*"],  # Or restrict to ["GET"] if only GET requests are needed
+    allow_headers=["*"],  # Or restrict to specific headers if necessary
 )
 
 # Directory setup
