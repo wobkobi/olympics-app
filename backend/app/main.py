@@ -28,10 +28,10 @@ logger = logging.getLogger(__name__)
 # CORS setup - Adjusted for security
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # or specify domains like ["http://localhost:3000"]
+    allow_origins=["http://localhost:3000", "https://aws.harrisonraynes.com"],  # Allowed origins
     allow_credentials=True,
-    allow_methods=["*"],  # or specify methods like ["GET", "POST"]
-    allow_headers=["*"],  # or specify headers if needed
+    allow_methods=["*"],  # Allow all methods (GET, POST, etc.)
+    allow_headers=["*"],  # Allow all headers
 )
 
 # Directory setup
