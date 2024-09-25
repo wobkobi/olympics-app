@@ -118,7 +118,9 @@ export default function HomePage() {
   const router = useRouter();
   const resetContext = useContext(ResetContext);
   if (!resetContext) {
-    throw new Error("ResetContext is undefined. Make sure to wrap your component with ResetProvider.");
+    throw new Error(
+      "ResetContext is undefined. Make sure to wrap your component with ResetProvider."
+    );
   }
 
   const { resetFiltersAndTable } = resetContext;
@@ -221,7 +223,6 @@ export default function HomePage() {
         if (selectedOlympics) countQueryParams.append("game", selectedOlympics);
         if (selectedRole) countQueryParams.append("role", selectedRole);
         if (searchQuery) countQueryParams.append("name", searchQuery);
-        // Add more filters as needed
 
         const countRes = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/athletes/count?${countQueryParams.toString()}`
@@ -237,7 +238,12 @@ export default function HomePage() {
         const skip = (currentPage - 1) * ITEMS_PER_PAGE;
 
         // Prepare filters
-        const filters: { game?: string; sport?: string; role?: string; name?: string } = {};
+        const filters: {
+          game?: string;
+          sport?: string;
+          role?: string;
+          name?: string;
+        } = {};
         if (selectedOlympics) filters.game = selectedOlympics;
         if (selectedRole) filters.role = selectedRole;
         if (searchQuery) filters.name = searchQuery;
@@ -248,7 +254,13 @@ export default function HomePage() {
       } catch (err: unknown) {
         console.error(err);
         if (err instanceof Error) {
-          setError(err.message);
+          if (err.message.includes("Failed to fetch")) {
+            setError(
+              "Cannot connect to the API. Please check your network connection."
+            );
+          } else {
+            setError(err.message);
+          }
         } else {
           setError("An unknown error occurred while fetching data.");
         }
@@ -258,7 +270,14 @@ export default function HomePage() {
     }
 
     loadData();
-  }, [currentPage, searchQuery, selectedOlympics, selectedRole, nocCountries.length, hostCities.length]);
+  }, [
+    currentPage,
+    searchQuery,
+    selectedOlympics,
+    selectedRole,
+    nocCountries.length,
+    hostCities.length,
+  ]);
 
   // Handle search input change
   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -303,7 +322,9 @@ export default function HomePage() {
   // Handle sorting
   const handleSort = (column: string) => {
     if (sortColumn === column) {
-      setSortDirection((prevDirection) => (prevDirection === "asc" ? "desc" : "asc"));
+      setSortDirection((prevDirection) =>
+        prevDirection === "asc" ? "desc" : "asc"
+      );
     } else {
       setSortColumn(column);
       setSortDirection("asc");
@@ -355,17 +376,17 @@ export default function HomePage() {
   }, [hostCities]);
 
   return (
-    <div className="bg-olympicWhite min-h-screen relative">
+    <div className="relative min-h-screen bg-olympicWhite">
       {/* Display Error State */}
       {error && (
-        <div className="fixed top-0 left-0 w-full h-full bg-white bg-opacity-75 flex items-center justify-center z-50">
+        <div className="fixed left-0 top-0 z-50 flex h-full w-full items-center justify-center bg-white bg-opacity-75">
           <p className="text-xl text-red-500">Error: {error}</p>
         </div>
       )}
 
       {/* Display Loading Indicator (Non-blocking) */}
       {isLoading && (
-        <div className="fixed top-4 right-4 z-50">
+        <div className="fixed right-4 top-4 z-50">
           <div className="loader"></div>
         </div>
       )}
@@ -374,21 +395,19 @@ export default function HomePage() {
       {!isLoading && !error && (
         <>
           {/* Navigation Bar with Home Button */}
-          <nav className="fixed top-0 left-0 w-full bg-olympicBlue text-white p-4 flex justify-between items-center z-40">
+          <nav className="fixed left-0 top-0 z-40 flex w-full items-center justify-between bg-olympicBlue p-4 text-white">
             <button
               onClick={handleResetAndNavigateHome}
-              className="px-4 py-2 bg-white text-olympicBlue rounded hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-olympicBlue"
-            >
+              className="rounded bg-white px-4 py-2 text-olympicBlue hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-olympicBlue">
               Home
             </button>
           </nav>
 
           {/* Hamburger Menu Icon */}
           <button
-            className="fixed top-4 left-4 z-50 p-2 bg-olympicBlue text-white rounded-full focus:outline-none"
+            className="fixed left-4 top-4 z-50 rounded-full bg-olympicBlue p-2 text-white focus:outline-none"
             onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)}
-            aria-label="Toggle Filter Menu"
-          >
+            aria-label="Toggle Filter Menu">
             <FaBars size={24} />
           </button>
 
@@ -430,7 +449,9 @@ export default function HomePage() {
           />
 
           {/* Athletes Table */}
-          <div className="flex-1 p-24 w-full"> {/* Added p-24 to account for fixed nav */}
+          <div className="w-full flex-1 p-24">
+            {" "}
+            {/* Added p-24 to account for fixed nav */}
             <Table
               data={groupedAthletes.map((athlete) => ({
                 ...athlete,
@@ -448,22 +469,22 @@ export default function HomePage() {
           </div>
 
           {/* Pagination Controls */}
-          <div className="flex justify-center items-center my-4">
+          <div className="my-4 flex items-center justify-center">
             <button
-              className="mx-2 px-4 py-2 bg-olympicBlue text-white rounded disabled:opacity-50"
+              className="mx-2 rounded bg-olympicBlue px-4 py-2 text-white disabled:opacity-50"
               onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-            >
+              disabled={currentPage === 1}>
               Previous
             </button>
             <span className="mx-2">
               Page {currentPage} of {totalPages}
             </span>
             <button
-              className="mx-2 px-4 py-2 bg-olympicBlue text-white rounded disabled:opacity-50"
-              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
-            >
+              className="mx-2 rounded bg-olympicBlue px-4 py-2 text-white disabled:opacity-50"
+              onClick={() =>
+                setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+              }
+              disabled={currentPage === totalPages}>
               Next
             </button>
           </div>
