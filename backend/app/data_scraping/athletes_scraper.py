@@ -144,10 +144,8 @@ def scrape_athlete_data():
         athlete_urls = json.load(file)
     
     total_urls = len(athlete_urls)
-    print(f"Total athlete URLs to process: {total_urls}")
 
     init_progress(total_urls, progress_data)
-    print("Initiated progress tracking")
     
     # Define the columns and data types
     columns = [
@@ -176,7 +174,6 @@ def scrape_athlete_data():
     if not os.path.exists(ATHLETES_CSV):
         os.makedirs(os.path.dirname(ATHLETES_CSV), exist_ok=True)
         pd.DataFrame(columns=columns).to_csv(ATHLETES_CSV, index=False)
-        print(f"CSV file created at {ATHLETES_CSV}")
     else:
         print(f"CSV file already exists at {ATHLETES_CSV}")
 

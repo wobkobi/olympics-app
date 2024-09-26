@@ -19,9 +19,11 @@ RAW_DATA_DIR = os.path.join(os.getcwd(), "raw_data")
 EVENTS_URLS_FILE = os.path.join(RAW_DATA_DIR, "events_urls.json")
 COUNTRIES_URLS_FILE = os.path.join(RAW_DATA_DIR, "countries_urls.json")
 
-max_threads = 20  # Adjust as needed
+max_threads = 100  # Adjust as needed
 event_queue = queue.Queue()
 file_lock = threading.Lock()  # Lock for synchronizing file writes
+events_urls_set = set()  # Set to track all unique event URLs
+events_urls_set_lock = threading.Lock()  # Lock for thread-safe access to the set
 
 # Shared variable to track if this is the first URL being written
 first_url_written = threading.Event()
@@ -72,6 +74,11 @@ def get_event_urls_worker(base_url):
                                     else:
                                         f.write('\n' + url_str)
                                         first_url_written.set()
+
+                        # Add to the global set of event URLs
+                        with events_urls_set_lock:
+                            events_urls_set.update(events_urls)
+
                 else:
                     print(f"No content fetched for {country_url}")
 
@@ -124,4 +131,6 @@ def fetch_and_save_events():
     with open(EVENTS_URLS_FILE, 'a', encoding='utf-8') as f:
         f.write('\n]')
 
-    print("Event URLs collection completed.")
+    # Print the total number of unique event URLs
+    print("Event URLs collection completed. Total unique event URLs: ", len(events_urls_set))
+
