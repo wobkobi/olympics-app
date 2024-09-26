@@ -210,7 +210,7 @@ def print_progress(task_name, progress_data):
     percentage_change = percentage_done - progress_data.get("last_logged_percentage", 0)
 
     # Print progress if at least 1% progress made and at least 5 seconds have passed
-    if current == total or (percentage_change >= 1 and time_since_last_print >= 5):
+    if current == total or (percentage_change >= 1 and time_since_last_print >= 10):
         formatted_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(current_time))
         print(f"[{formatted_time}], {task_name}: {percentage_done:.2f}% ({current}/{total}), ETA: {format_time(eta)}")
 
@@ -220,6 +220,7 @@ def print_progress(task_name, progress_data):
 
 def save_json(data, filename, append=False):
     """Save data to a JSON file, appending if required."""
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
     if append and os.path.exists(filename):
         with open(filename, 'r+', encoding='utf-8') as file:
             try:

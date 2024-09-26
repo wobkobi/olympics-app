@@ -1,6 +1,7 @@
 import os
 import threading
-from fastapi import FastAPI, HTTPException, BackgroundTasks, Path, Query, CORSMiddleware
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Path, Query
+from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import pandas as pd
 import numpy as np
@@ -143,7 +144,6 @@ def get_status():
     return {"status": get_status_message()}
 
 # Caching CSV Data
-
 @lru_cache(maxsize=10)
 def load_csv_as_dataframe(file_path: str) -> pd.DataFrame:
     if not os.path.exists(file_path):
@@ -167,6 +167,8 @@ def get_athletes(
     """
     Retrieve athletes data with pagination and optional filtering.
     """
+    if not os.path.exists(ATHLETES_CSV):
+        raise HTTPException(status_code=404, detail="File not found")
     try:
         df = load_csv_as_dataframe(ATHLETES_CSV)
 
@@ -201,6 +203,8 @@ def get_athletes_count(
     """
     Retrieve the total count of athletes based on applied filters.
     """
+    if not os.path.exists(ATHLETES_CSV):
+        raise HTTPException(status_code=404, detail="Athletes data not found")
     try:
         df = load_csv_as_dataframe(ATHLETES_CSV)
 
@@ -224,6 +228,8 @@ def get_athlete_details(athlete_id: int = Path(..., description="The ID of the a
     """
     Retrieve a single athlete by their ID with all associated events.
     """
+    if not os.path.exists(ATHLETES_CSV):
+        raise HTTPException(status_code=404, detail="Athletes data not found")
     try:
         df = load_csv_as_dataframe(ATHLETES_CSV)
         athlete_df = df[df['id'] == athlete_id]
@@ -263,17 +269,20 @@ def get_host_cities():
     """
     Retrieve host cities data as a JSON array.
     """
-    def stream_host_cities_as_json_array(file_path: str) -> Iterator[str]:
+    if not os.path.exists(HOST_CITIES_CSV):
+        raise HTTPException(status_code=404, detail="Host cities data not found")
+        
+    def stream_host_cities_as_json_array() -> Iterator[str]:
         try:
-            df = load_csv_as_dataframe(file_path)
+            df = load_csv_as_dataframe(HOST_CITIES_CSV)
             records = df.to_dict(orient='records')
             yield json.dumps(records)
         except Exception as e:
-            logger.error(f"Error streaming CSV file {file_path}: {e}", exc_info=True)
+            logger.error(f"Error streaming CSV file {HOST_CITIES_CSV}: {e}", exc_info=True)
             raise HTTPException(status_code=500, detail=f"Error streaming CSV file: {e}")
 
     return StreamingResponse(
-        stream_host_cities_as_json_array(HOST_CITIES_CSV),
+        stream_host_cities_as_json_array(),
         media_type="application/json"
     )
 
@@ -282,17 +291,20 @@ def get_noc_countries():
     """
     Retrieve NOC countries data as a JSON array.
     """
-    def stream_noc_countries_as_json_array(file_path: str) -> Iterator[str]:
+    if not os.path.exists(NOC_COUNTRIES_CSV):
+        raise HTTPException(status_code=404, detail="File not found")
+        
+    def stream_noc_countries_as_json_array() -> Iterator[str]:
         try:
-            df = load_csv_as_dataframe(file_path)
+            df = load_csv_as_dataframe(NOC_COUNTRIES_CSV)
             records = df.to_dict(orient='records')
             yield json.dumps(records)
         except Exception as e:
-            logger.error(f"Error streaming CSV file {file_path}: {e}", exc_info=True)
+            logger.error(f"Error streaming CSV file {NOC_COUNTRIES_CSV}: {e}", exc_info=True)
             raise HTTPException(status_code=500, detail=f"Error streaming CSV file: {e}")
 
     return StreamingResponse(
-        stream_noc_countries_as_json_array(NOC_COUNTRIES_CSV),
+        stream_noc_countries_as_json_array(),
         media_type="application/json"
     )
 

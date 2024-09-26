@@ -19,7 +19,7 @@ RAW_DATA_DIR = os.path.join(os.getcwd(), "raw_data")
 ATHLETES_URLS_FILE = os.path.join(RAW_DATA_DIR, "athletes_urls.json")
 EVENTS_URLS_FILE = os.path.join(RAW_DATA_DIR, "events_urls.json")
 
-max_threads = 20  # Adjust as needed
+max_threads = 100  # Adjust as needed
 athletes_queue = queue.Queue()
 file_lock = threading.Lock()  # Lock for synchronizing file writes
 
@@ -123,8 +123,6 @@ def fetch_and_save_athletes():
     with open(ATHLETES_URLS_FILE, 'a', encoding='utf-8') as f:
         f.write('\n]')
 
-    print("Athlete URLs collection completed.")
-
     # Optionally, remove duplicates after scraping
     remove_duplicate_athlete_urls()
 
@@ -133,13 +131,20 @@ def remove_duplicate_athlete_urls():
     print("Removing duplicate athlete URLs...")
     if os.path.exists(ATHLETES_URLS_FILE):
         with open(ATHLETES_URLS_FILE, 'r', encoding='utf-8') as f:
-            urls = json.load(f)
+            # Load the JSON array
+            try:
+                urls = json.load(f)
+            except json.JSONDecodeError:
+                print("Error reading athlete URLs JSON file.")
+                return
+
+        # Remove duplicates by converting to a set, then back to a list
         unique_urls = list(set(urls))
+
+        # Save the cleaned list back to the file
         with open(ATHLETES_URLS_FILE, 'w', encoding='utf-8') as f:
             json.dump(unique_urls, f, indent=4)
-        print(f"Total unique athlete URLs: {len(unique_urls)}")
+
+        print(f"Athletes URLs collection completed. Total unique athlete URLs: {len(unique_urls)}")
     else:
         print("Athlete URLs file does not exist.")
-
-if __name__ == "__main__":
-    fetch_and_save_athletes()
