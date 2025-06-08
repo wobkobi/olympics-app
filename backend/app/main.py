@@ -116,7 +116,7 @@ def check_and_run_data_pipeline():
         update_status("Data scraping completed.")
     except Exception as e:
         logger.error(f"Error occurred: {e}", exc_info=True)
-        update_status(f"Pipeline failed: {str(e)}")
+        update_status("Pipeline failed due to an internal error.")
 
 # APScheduler setup
 scheduler = AsyncIOScheduler()
@@ -141,7 +141,10 @@ async def run_data_pipeline(background_tasks: BackgroundTasks):
 
 @app.get("/status")
 def get_status():
-    return {"status": get_status_message()}
+    status = get_status_message()
+    if "Pipeline failed" in status:
+        status = "Pipeline failed due to an internal error."
+    return {"status": status}
 
 # Caching CSV Data
 @lru_cache(maxsize=10)
