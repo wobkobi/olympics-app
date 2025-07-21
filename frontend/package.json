@@ -27,7 +27,7 @@
     "@types/papaparse": "^5.3.14",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "autoprefixer": "^10.4.20",
+    "autoprefixer": "^10.4.21",
     "aws-cdk": "^2.160.0",
     "aws-cdk-lib": "^2.204.0",
     "constructs": "^10.3.0",
