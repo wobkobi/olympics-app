@@ -13,7 +13,7 @@
   "dependencies": {
     "aws-amplify": "^6.6.2",
     "next": "^15.4.4",
-    "papaparse": "^5.4.1",
+    "papaparse": "^5.5.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-icons": "^5.5.0",
@@ -24,7 +24,7 @@
     "@aws-amplify/backend-cli": "^1.2.8",
     "@types/aws-lambda": "^8.10.152",
     "@types/node": "^24",
-    "@types/papaparse": "^5.3.14",
+    "@types/papaparse": "^5.3.16",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.21",
