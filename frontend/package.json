@@ -34,7 +34,7 @@
     "esbuild": "^0.25.3",
     "eslint": "^9",
     "eslint-config-next": "15.4.2",
-    "husky": "^9.1.6",
+    "husky": "^9.1.7",
     "lint-staged": "^16.1.5",
     "postcss": "^8.5.6",
     "prettier-plugin-organize-imports": "^4.1.0",
