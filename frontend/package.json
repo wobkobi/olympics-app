@@ -11,7 +11,7 @@
     "export": "next export"
   },
   "dependencies": {
-    "aws-amplify": "^6.6.2",
+    "aws-amplify": "^6.15.5",
     "next": "^15.4.6",
     "papaparse": "^5.5.3",
     "react": "^19.1.0",
